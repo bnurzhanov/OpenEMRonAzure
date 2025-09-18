@@ -13,6 +13,10 @@ resource sa 'Microsoft.Storage/storageAccounts@2023-01-01' = {
 
 resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
   name: '${storageAccountName}/default/sites'
+  // Explicit dependency to ensure storage account is created before the share
+  dependsOn: [
+    sa
+  ]
   properties: {
     shareQuota: 1024
   }
