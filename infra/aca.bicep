@@ -12,9 +12,7 @@ param userAssignedIdentityId string
 param storageAccountName string
 @description('Azure File share name (simple) containing the sites directory contents')
 param fileShareName string
-// Storage account key will be retrieved directly via listKeys at deploy time (simpler and avoids KV timing issues)
-        }
-        {
+
 // Name used for the managed environment storage (must be unique within the ACA environment)
 var envStorageName = '${storageAccountName}-${fileShareName}'
 
