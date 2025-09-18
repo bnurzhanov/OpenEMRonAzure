@@ -113,13 +113,18 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
             '-c'
             '''set -euo pipefail
 VOL=/mnt/persistent-sites
+OE_ROOT=/var/www/localhost/htdocs/openemr
+SITE=default
+SITES_PATH="$OE_ROOT/sites"
+
+echo "[seed-sites] Starting init container logic..."
 
 if [ -f "$VOL/.seeded" ]; then
   echo "[seed-sites] Sentinel exists (.seeded); skeleton previously copied."
 else
   if [ -z "$(ls -A "$VOL" 2>/dev/null)" ]; then
     echo "[seed-sites] Volume empty; copying OpenEMR sites skeleton..."
-    cp -a /var/www/localhost/htdocs/openemr/sites/* "$VOL"/
+    cp -a $OE_ROOT/sites/* "$VOL"/
     rm -f "$VOL/default/sqlconf.php"
   else
     echo "[seed-sites] Volume not empty; leaving existing contents."
@@ -128,7 +133,54 @@ else
   echo "[seed-sites] Skeleton seed step complete."
 fi
 
-echo "[seed-sites] Init complete. Native OpenEMR auto configuration will run if sqlconf.php absent."
+# Ensure application uses persistent sites via symlink before attempting install.
+if [ ! -L "$SITES_PATH" ]; then
+  if [ -d "$SITES_PATH" ]; then
+    echo "[seed-sites] Repointing sites directory to persistent volume via symlink."
+    rm -rf "$SITES_PATH"
+  fi
+  ln -s "$VOL" "$SITES_PATH"
+fi
+
+# Automated install (idempotent)
+if [ ! -f "$VOL/$SITE/sqlconf.php" ]; then
+  echo "[seed-sites] sqlconf.php not found – initiating unattended OpenEMR install."
+  LOCKDIR="$VOL/.install.lock"
+  if mkdir "$LOCKDIR" 2>/dev/null; then
+    trap 'rmdir "$LOCKDIR"' EXIT
+    cd "$OE_ROOT"
+    export OPENEMR_ENABLE_INSTALLER_AUTO=1
+    set +e
+    php -f contrib/util/installScripts/InstallerAuto.php \
+      no_root_db_access=1 \
+      server="$MYSQL_HOST" \
+      loginhost=% \
+      port="$MYSQL_PORT" \
+      login="$MYSQL_USER" \
+      pass="$MYSQL_PASS" \
+      dbname="$MYSQL_DATABASE" \
+      site="$SITE" \
+      iuser="$OE_USER" \
+      iuname=Administrator \
+      iuserpass="$OE_PASS" \
+      igroup=Default
+    rc=$?
+    set -e
+    if [ $rc -ne 0 ]; then
+      echo "[seed-sites] ERROR: InstallerAuto.php failed with exit code $rc" >&2
+    else
+      echo "[seed-sites] InstallerAuto.php completed successfully."
+      if [ -f "$VOL/$SITE/sqlconf.php" ]; then chmod 666 "$VOL/$SITE/sqlconf.php" || true; fi
+      if [ -d "$VOL/$SITE/documents" ]; then chmod -R 777 "$VOL/$SITE/documents" || true; fi
+    fi
+  else
+    echo "[seed-sites] Another init process is installing (lock present); skipping install attempt."
+  fi
+else
+  echo "[seed-sites] sqlconf.php already present – skipping auto installation."
+fi
+
+echo "[seed-sites] Init complete."
 '''
           ]
           volumeMounts: [
@@ -158,6 +210,14 @@ echo "[seed-sites] Init complete. Native OpenEMR auto configuration will run if 
             {
               name: 'MYSQL_PASS'
               secretRef: 'mysql-admin-password'
+            }
+            {
+              name: 'OE_USER'
+              value: oeUser
+            }
+            {
+              name: 'OE_PASS'
+              secretRef: 'oe-pass'
             }
           ]
         }
