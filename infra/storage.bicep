@@ -25,3 +25,6 @@ resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01
 output storageAccountId string = sa.id
 output storageAccountName string = sa.name
 output fileShareName string = share.name
+// Convenience output: simple share name (last segment) for volume mounting
+// The created share path is <account>/default/sites so this is always 'sites'
+output fileShareSimpleName string = 'sites'

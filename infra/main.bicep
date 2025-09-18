@@ -168,6 +168,8 @@ module aca './aca.bicep' = {
     userAssignedIdentityId: uami.outputs.uamiId
     acaEnvironmentName: acaEnvironmentName
     containerAppName: containerAppName
+    storageAccountName: storage.outputs.storageAccountName
+    fileShareName: storage.outputs.fileShareSimpleName
   }
 }
 

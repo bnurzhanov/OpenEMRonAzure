@@ -7,6 +7,13 @@ param acaEnvironmentName string
 param containerAppName string
 @description('Resource ID of the User Assigned Managed Identity to attach to ACA')
 param userAssignedIdentityId string
+@description('Storage account name hosting Azure File share for persistent OpenEMR sites data')
+param storageAccountName string
+@description('Azure File share name (simple) containing the sites directory contents')
+param fileShareName string
+
+// Name used for the managed environment storage (must be unique within the ACA environment)
+var envStorageName = '${storageAccountName}-${fileShareName}'
 
 // OpenEMR configuration now sourced from Key Vault secrets instead of plain parameters
 @description('Plain MySQL Flexible Server host name (e.g. myserver.mysql.database.azure.com)')
@@ -26,9 +33,24 @@ resource acaEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
   properties: {}
 }
 
+// Register Azure File share as managed environment storage so it can be mounted by the Container App
+resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  name: envStorageName
+  parent: acaEnv
+  properties: {
+    azureFile: {
+      accountName: storageAccountName
+      shareName: fileShareName
+      // Retrieve the storage account key at deploy time
+      accountKey: listKeys(resourceId('Microsoft.Storage/storageAccounts', storageAccountName), '2023-01-01').keys[0].value
+      accessMode: 'ReadWrite'
+    }
+  }
+}
+
 
 // Container App
-resource aca 'Microsoft.App/containerApps@2023-05-01' = {
+resource aca 'Microsoft.App/containerApps@2024-03-01' = {
   name: containerAppName
   location: location
   identity: {
@@ -129,9 +151,20 @@ resource aca 'Microsoft.App/containerApps@2023-05-01' = {
             }
           ]
           // No volume mounts (ephemeral storage). If persistence is needed later, reintroduce Azure File or Blob storage.
+          volumeMounts: [
+            {
+              volumeName: 'sitesdata'
+              mountPath: '/var/www/localhost/htdocs/openemr/sites'
+            }
+          ]
         }
       ]
-      // No volumes defined.
+      volumes: [
+        {
+          name: 'sitesdata'
+          storageName: envStorageName
+        }
+      ]
       scale: {
         minReplicas: 1
         maxReplicas: 3
