@@ -25,6 +25,9 @@ param userAssignedIdentityName string = 'uai-openemr-dev-westus2'
 resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: resourceGroupName
   location: location
+  tags: {
+    SecurityControl: 'Ignore'
+  }
 }
 
 // Deploy KeyVault
