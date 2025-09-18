@@ -13,12 +13,17 @@ resource sa 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
+// Explicitly declare the default file service. Although it is implicitly created, referencing the share
+// immediately after storage account creation can occasionally yield a transient 404. Creating this
+// intermediate resource introduces a clearer dependency chain and avoids 'The specified resource does not exist.'
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = {
+  name: 'default'
+  parent: sa
+}
+
 resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
-  name: '${storageAccountName}/default/sites'
-  // Explicit dependency to ensure storage account is created before the share
-  dependsOn: [
-    sa
-  ]
+  name: 'sites'
+  parent: fileService
   properties: {
     shareQuota: 1024
   }
