@@ -168,10 +168,24 @@ echo "[seed-sites] Seeding complete."
               name: 'MYSQL_HOST'
               value: mysqlHost
             }
+            // Explicit port & database name so auto_configure.php doesn't guess/fail
+            {
+              name: 'MYSQL_PORT'
+              value: '3306'
+            }
+            {
+              name: 'MYSQL_DATABASE'
+              value: 'openemr'
+            }
             // OpenEMR image expects MYSQL_ROOT_PASS even when using a flexible server admin user; reuse admin password
             {
               name: 'MYSQL_ROOT_PASS'
               secretRef: 'mysql-admin-password'
+            }
+            // Override the default root username ("root") with the Flexible Server admin user (if image honors MYSQL_ROOT_USER)
+            {
+              name: 'MYSQL_ROOT_USER'
+              secretRef: 'mysql-admin-user'
             }
             // Map MYSQL_USER / MYSQL_PASS to the same admin credentials (or provide separate app user secrets later)
             {
