@@ -158,6 +158,10 @@ module rbacAcr './rbac-acr.bicep' = {
 module aca './aca.bicep' = {
   name: 'aca-deploy'
   scope: rg
+  // Ensure database (and its networking/provisioning) finishes before container app tries to connect
+  dependsOn: [
+    mysql
+  ]
   params: {
     location: location
     acrServer: acr.outputs.acrServer
