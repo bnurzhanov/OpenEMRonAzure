@@ -183,6 +183,14 @@ echo "[seed-sites] Seeding complete."
               secretRef: 'mysql-admin-password'
             }
             {
+              name: 'MYSQL_DATABASE'
+              value: 'openemr'
+            }
+            {
+              name: 'MYSQL_PORT'
+              value: '3306'
+            }
+            {
               name: 'OE_USER'
               value: oeUser
             }
