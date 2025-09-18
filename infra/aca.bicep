@@ -49,14 +49,16 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
       shareName: fileShareName
       // Injected secure param to avoid expression loss resulting in blank mount credentials
   // Retrieve secret value at deploy time (note: still resolved server-side; secret value not exposed as output)
-  // IMPORTANT: When using a full secret URI (https://<kv>.vault.azure.net/secrets/<name>/<version>) do NOT supply an apiVersion
-  // parameter to reference(). Supplying one makes ARM treat the URI as a resource ID, yielding
-  // "The resource namespace 'https:' is invalid". Just call reference(secretUriWithVersion).value
-  accountKey: reference(storageAccountKeySecretUri).value
+  // IMPORTANT: Provide the Key Vault secrets REST API version when calling reference() with a full secret URI.
+  // Using the full secret URI (with version) plus apiVersion '2015-06-01' is the supported pattern:
+  // reference('https://<kv>.vault.azure.net/secrets/<name>/<version>', '2015-06-01').value
+  // Without the apiVersion Azure will emit: "... requires an API version". Earlier guidance about omitting
+  // apiVersion only applies when using a resourceId-form (which this is not). This call returns only the secret value.
+  accountKey: reference(storageAccountKeySecretUri, '2015-06-01').value
       accessMode: 'ReadWrite'
     }
   }
-}
+} 
 
 
 // Container App
