@@ -151,15 +151,6 @@ module rbacAcr './rbac-acr.bicep' = {
 // --------------------
 // ACA (uses UAMI to fetch secrets from KV)
 // --------------------
-// Create Key Vault secret holding storage account key before ACA so UAMI can reference it
-module storageKey './kv-storagekey.bicep' = {
-  name: 'kv-storagekey-deploy'
-  scope: rg
-  params: {
-    keyVaultName: keyvault.outputs.keyVaultName
-    storageAccountName: storage.outputs.storageAccountName
-  }
-}
 
 module aca './aca.bicep' = {
   name: 'aca-deploy'
@@ -180,10 +171,6 @@ module aca './aca.bicep' = {
     containerAppName: containerAppName
     storageAccountName: storage.outputs.storageAccountName
     fileShareName: storage.outputs.fileShareSimpleName
-    // Provide Key Vault metadata for in-template secret resolution (dual-mode logic inside aca.bicep)
-    keyVaultName: keyvault.outputs.keyVaultName
-    storageAccountKeySecretName: storageKey.outputs.storageAccountKeySecretName
-    // Leave storageAccountKey (direct) blank so module resolves via Key Vault secret created by kv-storagekey.bicep
   }
 }
 

@@ -12,13 +12,8 @@ param userAssignedIdentityId string
 param storageAccountName string
 @description('Azure File share name (simple) containing the sites directory contents')
 param fileShareName string
-@description('OPTIONAL direct storage account key for Azure File mount (secure). Leave blank to resolve from Key Vault secret instead.')
-@secure()
-param storageAccountKey string = ''
-@description('Key Vault name containing the storage account key secret (used when storageAccountKey param left blank)')
-param keyVaultName string
-@description('Secret name in Key Vault holding the storage account key (ignored if storageAccountKey provided)')
-param storageAccountKeySecretName string = 'storage-account-key'
+// Storage account key will be retrieved directly via listKeys at deploy time (simpler and avoids KV timing issues)
+
 
 // Name used for the managed environment storage (must be unique within the ACA environment)
 var envStorageName = '${storageAccountName}-${fileShareName}'
@@ -52,13 +47,8 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
     azureFile: {
       accountName: storageAccountName
       shareName: fileShareName
-      // Resolve storage account key either directly from secure param (if provided) or via Key Vault secret at deploy time.
-      // This avoids attempting reference() on a raw secret URI. If storageAccountKey is empty, we perform a resourceId-based secret lookup.
-      // NOTE: The Key Vault secret (storage-account-key) must already exist in this deployment (created by kv-storagekey.bicep module).
-      // Implementation: conditional expression (empty() not directly available; compare to '')
-      // Use ternary-like pattern with if expression inside variable (defined inline for brevity)
-  // Use listSecret() which returns an object including the secret value; reference() on a secret resource only exposes metadata (no 'value' property)
-  accountKey: storageAccountKey != '' ? storageAccountKey : listSecret(resourceId('Microsoft.KeyVault/vaults/secrets', keyVaultName, storageAccountKeySecretName), '2015-06-01').value
+    // Retrieve storage account key directly. If stricter secrecy needed, reintroduce Key Vault indirection.
+    accountKey: listKeys(resourceId('Microsoft.Storage/storageAccounts', storageAccountName), '2023-01-01').keys[0].value
       accessMode: 'ReadWrite'
     }
   }
