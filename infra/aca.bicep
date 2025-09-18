@@ -7,6 +7,11 @@ param acaEnvironmentName string
 param containerAppName string
 @description('Resource ID of the User Assigned Managed Identity to attach to ACA')
 param userAssignedIdentityId string
+@description('Log Analytics workspace customer (tenant) ID for ACA log collection')
+param logAnalyticsCustomerId string
+@secure()
+@description('Log Analytics shared key for ACA log collection (primary or secondary)')
+param logAnalyticsSharedKey string
 
 // OpenEMR configuration now sourced from Key Vault secrets instead of plain parameters
 @description('Plain MySQL Flexible Server host name (e.g. myserver.mysql.database.azure.com)')
@@ -23,7 +28,15 @@ param timezone string = 'UTC'
 resource acaEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
   name: acaEnvironmentName
   location: location
-  properties: {}
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsCustomerId
+        sharedKey: logAnalyticsSharedKey
+      }
+    }
+  }
 }
 
 
