@@ -57,7 +57,8 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
       // NOTE: The Key Vault secret (storage-account-key) must already exist in this deployment (created by kv-storagekey.bicep module).
       // Implementation: conditional expression (empty() not directly available; compare to '')
       // Use ternary-like pattern with if expression inside variable (defined inline for brevity)
-      accountKey: storageAccountKey != '' ? storageAccountKey : reference(resourceId('Microsoft.KeyVault/vaults/secrets', keyVaultName, storageAccountKeySecretName), '2015-06-01').value
+  // Use listSecret() which returns an object including the secret value; reference() on a secret resource only exposes metadata (no 'value' property)
+  accountKey: storageAccountKey != '' ? storageAccountKey : listSecret(resourceId('Microsoft.KeyVault/vaults/secrets', keyVaultName, storageAccountKeySecretName), '2015-06-01').value
       accessMode: 'ReadWrite'
     }
   }
