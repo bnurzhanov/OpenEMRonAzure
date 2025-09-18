@@ -22,7 +22,7 @@ on:
 env:
   AZURE_LOCATION: westus2
   AZURE_RESOURCE_GROUP: 'rg-openemr-dev-westus2'  
-  MYSQL_ADMIN: openemrlogin@mysql-openemr-dev-westus2
+  MYSQL_ADMIN: 'openemrlogin@mysql-openemr-dev-westus2'
   # Match main.bicep default mySqlName (ensure kept in sync). Used to derive mysqlHost FQDN.
   MYSQL_SERVER_NAME: mysql-openemr-dev-westus2
   # Optional override for timezone passed into template (defaults to UTC if omitted)
