@@ -173,7 +173,8 @@ module aca './aca.bicep' = {
     acaEnvironmentName: acaEnvironmentName
     containerAppName: containerAppName
     storageAccountName: storage.outputs.storageAccountName
-    fileShareName: storage.outputs.fileShareSimpleName
+    // Use the output tied to the actual share resource so ACA waits for share creation
+    fileShareName: storage.outputs.fileShareName
   }
 }
 
