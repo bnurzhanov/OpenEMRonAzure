@@ -168,8 +168,6 @@ module aca './aca.bicep' = {
     userAssignedIdentityId: uami.outputs.uamiId
     acaEnvironmentName: acaEnvironmentName
     containerAppName: containerAppName
-    logAnalyticsCustomerId: logs.outputs.workspaceCustomerId
-    logAnalyticsSharedKey: logs.outputs.workspaceSharedKey
   }
 }
 
