@@ -8,7 +8,9 @@ resource sa 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
-  properties: {}
+  properties: {
+    allowSharedKeyAccess: true
+  }
 }
 
 resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
