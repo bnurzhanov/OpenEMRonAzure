@@ -45,7 +45,7 @@ services:
     # Pin to a known stable OpenEMR release instead of floating :latest to avoid
     # unexpected breaking changes. Update intentionally after reviewing release notes.
     # To change versions: replace the tag below and run: docker compose pull openemr && docker compose up -d openemr
-    image: openemr/openemr:7.0.2
+    image: openemr/openemr:7.0.3
     depends_on:
       mysql:
         condition: service_healthy
