@@ -102,6 +102,46 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
       ]
     }
     template: {
+      // Init container seeds the Azure File share with the packaged OpenEMR \"sites\" skeleton
+      // so the main container does not start with an empty /sites (which breaks bootstrap expecting sqlconf.php later).
+      // Strategy: mount the persistent volume at an alternate path so the original image path is still visible.
+      // A sentinel file (.seeded) prevents redundant full copies on restarts / additional replicas.
+      initContainers: [
+        {
+          name: 'seed-sites'
+          image: openEmrImage
+          command: ['/bin/sh']
+          args: [
+            '-c'
+            '''set -euo pipefail
+VOL=/mnt/persistent-sites
+echo "[seed-sites] Starting volume seed check..."
+if [ -f "$VOL/.seeded" ]; then
+  echo "[seed-sites] Sentinel exists (.seeded); skipping copy."
+  exit 0
+fi
+# If volume already contains data (perhaps migrated manually), respect it and just drop sentinel.
+if [ "$(ls -A "$VOL" 2>/dev/null)" ]; then
+  echo "[seed-sites] Volume not empty; assuming previously populated. Creating sentinel and exiting."
+  touch "$VOL/.seeded"
+  exit 0
+fi
+echo "[seed-sites] Copying OpenEMR sites skeleton into persistent volume..."
+cp -a /var/www/localhost/htdocs/openemr/sites/* "$VOL"/
+# Ensure first-run wizard can generate proper sqlconf.php
+rm -f "$VOL/default/sqlconf.php" || true
+touch "$VOL/.seeded"
+echo "[seed-sites] Seeding complete."
+'''
+          ]
+          volumeMounts: [
+            {
+              volumeName: 'sitesdata'
+              mountPath: '/mnt/persistent-sites'
+            }
+          ]
+        }
+      ]
       containers: [
         {
           name: 'openemr'
