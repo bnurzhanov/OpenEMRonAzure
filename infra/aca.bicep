@@ -11,6 +11,8 @@ param userAssignedIdentityId string
 param storageAccountName string
 @description('Azure File share name (simple) containing the sites directory contents')
 param fileShareName string
+@description('Key Vault secret URI containing the storage account key for Azure File mount')
+param storageAccountKeySecretUri string
 
 // Name used for the managed environment storage (must be unique within the ACA environment)
 var envStorageName = '${storageAccountName}-${fileShareName}'
@@ -44,8 +46,9 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
     azureFile: {
       accountName: storageAccountName
       shareName: fileShareName
-      // Retrieve the storage account key at deploy time
-      accountKey: listKeys(resourceId('Microsoft.Storage/storageAccounts', storageAccountName), '2023-01-01').keys[0].value
+      // Injected secure param to avoid expression loss resulting in blank mount credentials
+  // Retrieve secret value at deploy time (note: still resolved server-side; secret value not exposed as output)
+  accountKey: reference(storageAccountKeySecretUri, '2023-07-01').value
       accessMode: 'ReadWrite'
     }
   }

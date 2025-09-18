@@ -151,6 +151,16 @@ module rbacAcr './rbac-acr.bicep' = {
 // --------------------
 // ACA (uses UAMI to fetch secrets from KV)
 // --------------------
+// Create Key Vault secret holding storage account key before ACA so UAMI can reference it
+module storageKey './kv-storagekey.bicep' = {
+  name: 'kv-storagekey-deploy'
+  scope: rg
+  params: {
+    keyVaultName: keyvault.outputs.keyVaultName
+    storageAccountName: storage.outputs.storageAccountName
+  }
+}
+
 module aca './aca.bicep' = {
   name: 'aca-deploy'
   scope: rg
@@ -170,6 +180,7 @@ module aca './aca.bicep' = {
     containerAppName: containerAppName
     storageAccountName: storage.outputs.storageAccountName
     fileShareName: storage.outputs.fileShareSimpleName
+    storageAccountKeySecretUri: storageKey.outputs.storageAccountKeySecretUri
   }
 }
 
