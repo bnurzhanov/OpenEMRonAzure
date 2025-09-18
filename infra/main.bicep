@@ -180,7 +180,10 @@ module aca './aca.bicep' = {
     containerAppName: containerAppName
     storageAccountName: storage.outputs.storageAccountName
     fileShareName: storage.outputs.fileShareSimpleName
-    storageAccountKeySecretUri: storageKey.outputs.storageAccountKeySecretUri
+    // Provide Key Vault metadata for in-template secret resolution (dual-mode logic inside aca.bicep)
+    keyVaultName: keyvault.outputs.keyVaultName
+    storageAccountKeySecretName: storageKey.outputs.storageAccountKeySecretName
+    // Leave storageAccountKey (direct) blank so module resolves via Key Vault secret created by kv-storagekey.bicep
   }
 }
 

@@ -12,8 +12,13 @@ param userAssignedIdentityId string
 param storageAccountName string
 @description('Azure File share name (simple) containing the sites directory contents')
 param fileShareName string
-@description('Key Vault secret URI containing the storage account key for Azure File mount')
-param storageAccountKeySecretUri string
+@description('OPTIONAL direct storage account key for Azure File mount (secure). Leave blank to resolve from Key Vault secret instead.')
+@secure()
+param storageAccountKey string = ''
+@description('Key Vault name containing the storage account key secret (used when storageAccountKey param left blank)')
+param keyVaultName string
+@description('Secret name in Key Vault holding the storage account key (ignored if storageAccountKey provided)')
+param storageAccountKeySecretName string = 'storage-account-key'
 
 // Name used for the managed environment storage (must be unique within the ACA environment)
 var envStorageName = '${storageAccountName}-${fileShareName}'
@@ -47,14 +52,12 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
     azureFile: {
       accountName: storageAccountName
       shareName: fileShareName
-      // Injected secure param to avoid expression loss resulting in blank mount credentials
-  // Retrieve secret value at deploy time (note: still resolved server-side; secret value not exposed as output)
-  // IMPORTANT: Provide the Key Vault secrets REST API version when calling reference() with a full secret URI.
-  // Using the full secret URI (with version) plus apiVersion '2015-06-01' is the supported pattern:
-  // reference('https://<kv>.vault.azure.net/secrets/<name>/<version>', '2015-06-01').value
-  // Without the apiVersion Azure will emit: "... requires an API version". Earlier guidance about omitting
-  // apiVersion only applies when using a resourceId-form (which this is not). This call returns only the secret value.
-  accountKey: reference(storageAccountKeySecretUri, '2015-06-01').value
+      // Resolve storage account key either directly from secure param (if provided) or via Key Vault secret at deploy time.
+      // This avoids attempting reference() on a raw secret URI. If storageAccountKey is empty, we perform a resourceId-based secret lookup.
+      // NOTE: The Key Vault secret (storage-account-key) must already exist in this deployment (created by kv-storagekey.bicep module).
+      // Implementation: conditional expression (empty() not directly available; compare to '')
+      // Use ternary-like pattern with if expression inside variable (defined inline for brevity)
+      accountKey: storageAccountKey != '' ? storageAccountKey : reference(resourceId('Microsoft.KeyVault/vaults/secrets', keyVaultName, storageAccountKeySecretName), '2015-06-01').value
       accessMode: 'ReadWrite'
     }
   }

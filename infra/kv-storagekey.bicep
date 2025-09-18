@@ -13,4 +13,5 @@ resource storageKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
-output storageAccountKeySecretUri string = storageKeySecret.properties.secretUriWithVersion
+// For modules that resolve the secret in-template, they only need the secret name (and vault name separately)
+output storageAccountKeySecretName string = secretName
