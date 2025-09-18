@@ -25,6 +25,9 @@ param oePassSecretUri string
 @description('Plain timezone value (e.g. UTC or America/New_York)')
 param timezone string = 'UTC'
 
+@description('Container image reference for OpenEMR (repository[:tag])')
+param openEmrImage string = 'openemr/openemr:7.0.2'
+
 
 // ACA Environment
 resource acaEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
@@ -59,7 +62,7 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
       '${userAssignedIdentityId}': {}
     }
   }
-  // No external storage; using ephemeral container filesystem only.
+  // Persistent Azure File storage for OpenEMR sites data is registered via envStorage above.
   properties: {
     managedEnvironmentId: acaEnv.id
     configuration: {
@@ -99,7 +102,7 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'openemr'
-          image: 'openemr/openemr:7.0.2'
+          image: openEmrImage
           resources: {
             // Bicep type currently expects int; use 1 vCPU (adjust if fractional becomes supported in your API version)
             cpu: 1
@@ -150,7 +153,7 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
               value: timezone
             }
           ]
-          // No volume mounts (ephemeral storage). If persistence is needed later, reintroduce Azure File or Blob storage.
+          // Persistent volume mount backing /sites (Azure File share) to retain instance configuration & uploaded data.
           volumeMounts: [
             {
               volumeName: 'sitesdata'
@@ -162,7 +165,8 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
       volumes: [
         {
           name: 'sitesdata'
-          storageName: envStorageName
+          // Reference the actual managed environment storage resource name (creates dependency)
+          storageName: envStorage.name
         }
       ]
       scale: {
