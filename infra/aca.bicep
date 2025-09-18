@@ -128,8 +128,7 @@ if [ "$(ls -A "$VOL" 2>/dev/null)" ]; then
 fi
 echo "[seed-sites] Copying OpenEMR sites skeleton into persistent volume..."
 cp -a /var/www/localhost/htdocs/openemr/sites/* "$VOL"/
-# Ensure first-run wizard can generate proper sqlconf.php
-rm -f "$VOL/default/sqlconf.php" || true
+
 touch "$VOL/.seeded"
 echo "[seed-sites] Seeding complete."
 '''
