@@ -174,7 +174,7 @@ module aca './aca.bicep' = {
   oeUser: oeUser
   oePassSecretUri: keyvault.outputs.oePassSecretUri
   timezone: timezone
-    appInsightsKey: appInsights.outputs.instrumentationKey
+    appInsightsConnectionString: appInsights.outputs.connectionString
     userAssignedIdentityId: uami.outputs.uamiId
     acaEnvironmentName: acaEnvironmentName
     containerAppName: containerAppName
