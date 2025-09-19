@@ -132,6 +132,11 @@ $pass   = getenv('MYSQL_PASS') ?: 'openemr';
 $dbase  = getenv('MYSQL_DATABASE') ?: 'openemr';
 $db_encoding = 'utf8mb4';
 
+// SSL configuration for Azure MySQL Flexible Server
+$ssl_ca = '/etc/ssl/certs/ca-certificates.crt';
+$ssl_cert = '';
+$ssl_key = '';
+
 $sqlconf = array();
 global $sqlconf;
 $sqlconf["host"]= $host;
@@ -140,6 +145,9 @@ $sqlconf["login"] = $login;
 $sqlconf["pass"] = $pass;
 $sqlconf["dbase"] = $dbase;
 $sqlconf["db_encoding"] = $db_encoding;
+$sqlconf["ssl_ca"] = $ssl_ca;
+$sqlconf["ssl_cert"] = $ssl_cert;
+$sqlconf["ssl_key"] = $ssl_key;
 EOF
               
               chmod 644 /mnt/sites/default/sqlconf.php
@@ -230,6 +238,11 @@ EOF
             {
               name: 'TZ'
               value: timezone
+            }
+            // MySQL SSL configuration for Azure MySQL Flexible Server
+            {
+              name: 'MYSQL_SSL_CA'
+              value: '/etc/ssl/certs/ca-certificates.crt'
             }
           ]
           // Persistent volume mount backing /sites (Azure File share) to retain instance configuration & uploaded data.
