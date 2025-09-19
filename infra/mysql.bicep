@@ -9,10 +9,10 @@ param mysqlPassword string
 // Name of the primary OpenEMR application database to create on the flexible server
 @description('MySQL database name to provision for OpenEMR')
 param openEmrDatabaseName string = 'openemr'
-@description('MySQL database charset (utf8mb4 recommended)')
+@description('MySQL database charset (utf8mb4 recommended for OpenEMR)')
 param openEmrDbCharset string = 'utf8mb4'
-@description('MySQL database collation (must match charset; OpenEMR defaults to utf8mb4_general_ci)')
-param openEmrDbCollation string = 'utf8mb4_general_ci'
+@description('MySQL database collation (OpenEMR compatible)')
+param openEmrDbCollation string = 'utf8mb4_unicode_ci'
 
 
 resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-01-preview' = {
@@ -32,7 +32,8 @@ resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-01-preview' = {
   }
 }
 
-// Explicitly create the OpenEMR application database (so the app does not rely on implicit creation logic)
+// Pre-create the OpenEMR database since Azure MySQL admin user can't act like traditional root
+// This ensures the database exists with proper charset/collation before OpenEMR starts
 resource openEmrDb 'Microsoft.DBforMySQL/flexibleServers/databases@2023-06-01-preview' = {
   name: openEmrDatabaseName
   parent: mysql

@@ -129,7 +129,7 @@ $host   = getenv('MYSQL_HOST') ?: 'localhost';
 $port   = '3306';
 $login  = getenv('MYSQL_USER') ?: 'openemr';
 $pass   = getenv('MYSQL_PASS') ?: 'openemr';
-$dbase  = 'openemr';
+$dbase  = getenv('MYSQL_DATABASE') ?: 'openemr';
 $db_encoding = 'utf8mb4';
 
 $sqlconf = array();
@@ -163,6 +163,10 @@ EOF
               name: 'MYSQL_PASS'
               secretRef: 'mysql-admin-password'
             }
+            {
+              name: 'MYSQL_DATABASE'
+              value: 'openemr'
+            }
           ]
           volumeMounts: [
             {
@@ -195,6 +199,12 @@ EOF
               name: 'MYSQL_ROOT_PASS'
               secretRef: 'mysql-admin-password'
             }
+            // For Azure MySQL Flexible Server, set the admin user as root user
+            // since Azure doesn't provide a traditional root account
+            {
+              name: 'MYSQL_ROOT_USER'
+              secretRef: 'mysql-admin-user'
+            }
             // Optional OpenEMR env vars (will use defaults if not provided)
             {
               name: 'MYSQL_USER'
@@ -203,6 +213,11 @@ EOF
             {
               name: 'MYSQL_PASS'
               secretRef: 'mysql-admin-password'
+            }
+            // Explicitly specify the database name since it's pre-created
+            {
+              name: 'MYSQL_DATABASE'
+              value: 'openemr'
             }
             {
               name: 'OE_USER'
