@@ -113,27 +113,41 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
             '-c'
             '''
             if [ ! -f /mnt/sites/.seeded ]; then
-              echo "Copying default sites structure..."
-              cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/
+              echo "Initializing sites structure..."
               
-              echo "Creating sqlconf.php with environment variables..."
+              # Create necessary directories
+              mkdir -p /mnt/sites/default
+              mkdir -p /mnt/sites/default/documents/certificates
+              
+              # Download Azure MySQL Flexible Server root CA certificate
+              echo "Downloading Azure MySQL root CA certificate..."
+              curl -o /mnt/sites/default/documents/certificates/mysql-ca https://dl.cacerts.digicert.com/DigiCertGlobalRootCA.crt.pem
+              
+              # Verify the certificate was downloaded
+              if [ -f /mnt/sites/default/documents/certificates/mysql-ca ]; then
+                echo "Azure MySQL root CA certificate downloaded successfully"
+                chmod 644 /mnt/sites/default/documents/certificates/mysql-ca
+              else
+                echo "Error: Failed to download Azure MySQL root CA certificate"
+                exit 1
+              fi
+              
+              # Create sqlconf.php with SSL configuration
               cat > /mnt/sites/default/sqlconf.php << 'EOF'
 <?php
 //  OpenEMR
-//  MySQL Config
+//  MySQL Config for Azure MySQL Flexible Server
 
-global $disable_utf8_flag;
+$host = getenv('MYSQL_HOST') ?: 'localhost';
+$port = getenv('MYSQL_PORT') ?: '3306';
+$login = getenv('MYSQL_USER') ?: '';
+$pass = getenv('MYSQL_PASS') ?: '';
+$dbase = getenv('MYSQL_DATABASE') ?: 'openemr';
+$db_encoding = 'utf8mb4';
 $disable_utf8_flag = false;
 
-$host   = getenv('MYSQL_HOST') ?: 'localhost';
-$port   = '3306';
-$login  = getenv('MYSQL_USER') ?: 'openemr';
-$pass   = getenv('MYSQL_PASS') ?: 'openemr';
-$dbase  = getenv('MYSQL_DATABASE') ?: 'openemr';
-$db_encoding = 'utf8mb4';
-
-// SSL configuration for Azure MySQL Flexible Server
-$ssl_ca = '/etc/ssl/certs/ca-certificates.crt';
+// SSL Configuration for Azure MySQL Flexible Server
+$ssl_ca = $GLOBALS['OE_SITE_DIR'] . '/documents/certificates/mysql-ca';
 $ssl_cert = '';
 $ssl_key = '';
 
@@ -148,6 +162,24 @@ $sqlconf["db_encoding"] = $db_encoding;
 $sqlconf["ssl_ca"] = $ssl_ca;
 $sqlconf["ssl_cert"] = $ssl_cert;
 $sqlconf["ssl_key"] = $ssl_key;
+// SSL is required for Azure MySQL Flexible Server
+$sqlconf["ssl_mode"] = 'REQUIRED';
+$sqlconf["ssl_verify_server_cert"] = true;
+
+// Set config flag to indicate OpenEMR is configured
+$config = 1;
+EOF"]= $host;
+$sqlconf["port"] = $port;
+$sqlconf["login"] = $login;
+$sqlconf["pass"] = $pass;
+$sqlconf["dbase"] = $dbase;
+$sqlconf["db_encoding"] = $db_encoding;
+$sqlconf["ssl_ca"] = $ssl_ca;
+$sqlconf["ssl_cert"] = $ssl_cert;
+$sqlconf["ssl_key"] = $ssl_key;
+// Additional MySQL connection options for Azure
+$sqlconf["ssl_mode"] = '';
+$sqlconf["ssl_verify_server_cert"] = false;
 EOF
               
               chmod 644 /mnt/sites/default/sqlconf.php
@@ -242,7 +274,11 @@ EOF
             // MySQL SSL configuration for Azure MySQL Flexible Server
             {
               name: 'MYSQL_SSL_CA'
-              value: '/etc/ssl/certs/ca-certificates.crt'
+              value: '/var/www/localhost/htdocs/openemr/sites/default/documents/certificates/mysql-ca'
+            }
+            {
+              name: 'MYSQL_SSL_MODE'
+              value: 'REQUIRED'
             }
           ]
           // Persistent volume mount backing /sites (Azure File share) to retain instance configuration & uploaded data.

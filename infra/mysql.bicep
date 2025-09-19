@@ -37,6 +37,16 @@ resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-01-preview' = {
   }
 }
 
+// Configure MySQL to require SSL connections for security
+resource requireSecureTransport 'Microsoft.DBforMySQL/flexibleServers/configurations@2023-06-01-preview' = {
+  name: 'require_secure_transport'
+  parent: mysql
+  properties: {
+    value: 'ON'
+    source: 'user-override'
+  }
+}
+
 // Pre-create the OpenEMR database since Azure MySQL admin user can't act like traditional root
 // This ensures the database exists with proper charset/collation before OpenEMR starts
 resource openEmrDb 'Microsoft.DBforMySQL/flexibleServers/databases@2023-06-01-preview' = {
