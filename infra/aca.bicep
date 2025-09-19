@@ -111,7 +111,7 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
           command: ['/bin/sh']
           args: [
             '-c'
-            'if [ ! -f /mnt/sites/.seeded ]; then echo "Copying default sites structure..."; cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/ && touch /mnt/sites/.seeded && echo "Sites structure initialized"; else echo "Sites already seeded, skipping initialization"; fi'
+            'if [ ! -f /mnt/sites/.seeded ]; then echo "Copying default sites structure..."; cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/; echo "Removing any existing sqlconf.php to force regeneration with env vars..."; rm -f /mnt/sites/default/sqlconf.php; touch /mnt/sites/.seeded && echo "Sites structure initialized, sqlconf.php will be regenerated"; else echo "Sites already seeded, skipping initialization"; fi'
           ]
           volumeMounts: [
             {
@@ -143,6 +143,11 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'MYSQL_DATABASE'
               value: 'openemr'
+            }
+            // Force auto-configuration even if sites directory exists
+            {
+              name: 'FORCE_AUTO_SETUP'
+              value: 'true'
             }
             // For Azure MySQL Flexible Server, use the admin user as both root and app user
             // OpenEMR will connect as root during setup, then create/use the app user
