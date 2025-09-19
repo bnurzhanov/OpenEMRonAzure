@@ -31,17 +31,9 @@ resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-01-preview' = {
     }
     network: {
       publicNetworkAccess: 'Enabled'
+      // No delegatedSubnetResourceId means public access is allowed
+      // No privateDnsZoneResourceId means no private DNS zone
     }
-  }
-}
-
-// Allow Azure services to connect using the standard firewall rule approach
-resource allowAzureServices 'Microsoft.DBforMySQL/flexibleServers/firewallRules@2023-06-01-preview' = {
-  name: 'AllowAllAzureServices'
-  parent: mysql
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
   }
 }
 
