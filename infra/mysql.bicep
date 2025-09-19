@@ -29,6 +29,19 @@ resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-01-preview' = {
     storage: {
       storageSizeGB: 32
     }
+    network: {
+      publicNetworkAccess: 'Enabled'
+    }
+  }
+}
+
+// Built-in Azure services access configuration
+resource azureServicesAccess 'Microsoft.DBforMySQL/flexibleServers/configurations@2023-06-01-preview' = {
+  name: 'azure_services_access'
+  parent: mysql
+  properties: {
+    value: 'ON'
+    source: 'user-override'
   }
 }
 
