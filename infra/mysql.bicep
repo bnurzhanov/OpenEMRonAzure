@@ -25,7 +25,7 @@ resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-01-preview' = {
   properties: {
     administratorLogin: mysqlUser
     administratorLoginPassword: mysqlPassword
-    version: '8.0.21'
+    version: '8.4'
     storage: {
       storageSizeGB: 32
     }
