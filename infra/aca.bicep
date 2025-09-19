@@ -129,7 +129,7 @@ $host   = getenv('MYSQL_HOST') ?: 'localhost';
 $port   = '3306';
 $login  = getenv('MYSQL_USER') ?: 'openemr';
 $pass   = getenv('MYSQL_PASS') ?: 'openemr';
-$dbase  = getenv('MYSQL_DATABASE') ?: 'openemr';
+$dbase  = 'openemr';
 $db_encoding = 'utf8mb4';
 
 $sqlconf = array();
@@ -154,10 +154,6 @@ EOF
             {
               name: 'MYSQL_HOST'
               value: mysqlHost
-            }
-            {
-              name: 'MYSQL_DATABASE'
-              value: 'openemr'
             }
             {
               name: 'MYSQL_USER'
@@ -190,25 +186,16 @@ EOF
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
               value: appInsightsConnectionString
             }
-            // OpenEMR expected env vars (align with local docker-compose.yml)
+            // OpenEMR required env vars (from official documentation)
             {
               name: 'MYSQL_HOST'
               value: mysqlHost
             }
             {
-              name: 'MYSQL_DATABASE'
-              value: 'openemr'
-            }
-            // For Azure MySQL Flexible Server, use the admin user as both root and app user
-            // OpenEMR will connect as root during setup, then create/use the app user
-            {
-              name: 'MYSQL_ROOT_USER'
-              secretRef: 'mysql-admin-user'
-            }
-            {
               name: 'MYSQL_ROOT_PASS'
               secretRef: 'mysql-admin-password'
             }
+            // Optional OpenEMR env vars (will use defaults if not provided)
             {
               name: 'MYSQL_USER'
               secretRef: 'mysql-admin-user'
