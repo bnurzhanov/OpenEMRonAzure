@@ -35,13 +35,13 @@ resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-01-preview' = {
   }
 }
 
-// Built-in Azure services access configuration
-resource azureServicesAccess 'Microsoft.DBforMySQL/flexibleServers/configurations@2023-06-01-preview' = {
-  name: 'azure_services_access'
+// Allow Azure services to connect using the standard firewall rule approach
+resource allowAzureServices 'Microsoft.DBforMySQL/flexibleServers/firewallRules@2023-06-01-preview' = {
+  name: 'AllowAllAzureServices'
   parent: mysql
   properties: {
-    value: 'ON'
-    source: 'user-override'
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
   }
 }
 
