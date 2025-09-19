@@ -132,14 +132,6 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
           }
           env: [
             {
-              name: 'MYSQL_ADMIN_USER'
-              secretRef: 'mysql-admin-user'
-            }
-            {
-              name: 'MYSQL_ADMIN_PASSWORD'
-              secretRef: 'mysql-admin-password'
-            }
-            {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
               value: appInsightsConnectionString
             }
@@ -148,18 +140,26 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'MYSQL_HOST'
               value: mysqlHost
             }
-            // OpenEMR image expects MYSQL_ROOT_PASS even when using a flexible server admin user; reuse admin password
-            // Map MYSQL_USER / MYSQL_PASS to the same admin credentials (or provide separate app user secrets later)
+            {
+              name: 'MYSQL_DATABASE'
+              value: 'openemr'
+            }
+            // For Azure MySQL Flexible Server, use the admin user as both root and app user
+            // OpenEMR will connect as root during setup, then create/use the app user
+            {
+              name: 'MYSQL_ROOT_USER'
+              secretRef: 'mysql-admin-user'
+            }
+            {
+              name: 'MYSQL_ROOT_PASS'
+              secretRef: 'mysql-admin-password'
+            }
             {
               name: 'MYSQL_USER'
               secretRef: 'mysql-admin-user'
             }
             {
               name: 'MYSQL_PASS'
-              secretRef: 'mysql-admin-password'
-            }
-            {
-              name: 'MYSQL_ROOT_PASS'
               secretRef: 'mysql-admin-password'
             }
             {
