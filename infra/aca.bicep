@@ -111,7 +111,62 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
           command: ['/bin/sh']
           args: [
             '-c'
-            'if [ ! -f /mnt/sites/.seeded ]; then echo "Copying default sites structure..."; cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/; echo "Removing any existing sqlconf.php to force regeneration with env vars..."; rm -f /mnt/sites/default/sqlconf.php; touch /mnt/sites/.seeded && echo "Sites structure initialized, sqlconf.php will be regenerated"; else echo "Sites already seeded, skipping initialization"; fi'
+            '''
+            if [ ! -f /mnt/sites/.seeded ]; then
+              echo "Copying default sites structure..."
+              cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/
+              
+              echo "Creating sqlconf.php with environment variables..."
+              cat > /mnt/sites/default/sqlconf.php << 'EOF'
+<?php
+//  OpenEMR
+//  MySQL Config
+
+global $disable_utf8_flag;
+$disable_utf8_flag = false;
+
+$host   = getenv('MYSQL_HOST') ?: 'localhost';
+$port   = '3306';
+$login  = getenv('MYSQL_USER') ?: 'openemr';
+$pass   = getenv('MYSQL_PASS') ?: 'openemr';
+$dbase  = getenv('MYSQL_DATABASE') ?: 'openemr';
+$db_encoding = 'utf8mb4';
+
+$sqlconf = array();
+global $sqlconf;
+$sqlconf["host"]= $host;
+$sqlconf["port"] = $port;
+$sqlconf["login"] = $login;
+$sqlconf["pass"] = $pass;
+$sqlconf["dbase"] = $dbase;
+$sqlconf["db_encoding"] = $db_encoding;
+EOF
+              
+              chmod 644 /mnt/sites/default/sqlconf.php
+              touch /mnt/sites/.seeded
+              echo "Sites structure initialized with custom sqlconf.php"
+            else
+              echo "Sites already seeded, skipping initialization"
+            fi
+            '''
+          ]
+          env: [
+            {
+              name: 'MYSQL_HOST'
+              value: mysqlHost
+            }
+            {
+              name: 'MYSQL_DATABASE'
+              value: 'openemr'
+            }
+            {
+              name: 'MYSQL_USER'
+              secretRef: 'mysql-admin-user'
+            }
+            {
+              name: 'MYSQL_PASS'
+              secretRef: 'mysql-admin-password'
+            }
           ]
           volumeMounts: [
             {
@@ -143,11 +198,6 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'MYSQL_DATABASE'
               value: 'openemr'
-            }
-            // Force auto-configuration even if sites directory exists
-            {
-              name: 'FORCE_AUTO_SETUP'
-              value: 'true'
             }
             // For Azure MySQL Flexible Server, use the admin user as both root and app user
             // OpenEMR will connect as root during setup, then create/use the app user
