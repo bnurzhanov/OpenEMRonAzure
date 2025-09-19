@@ -100,11 +100,27 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
       ]
     }
     template: {
-      // Init container seeds the Azure File share with the packaged OpenEMR \"sites\" skeleton
+      // Init container seeds the Azure File share with the packaged OpenEMR "sites" skeleton
       // so the main container does not start with an empty /sites (which breaks bootstrap expecting sqlconf.php later).
       // Strategy: mount the persistent volume at an alternate path so the original image path is still visible.
       // A sentinel file (.seeded) prevents redundant full copies on restarts / additional replicas.
-      // (initContainers removed per request – relying on container's native startup behavior)
+      initContainers: [
+        {
+          name: 'sites-initializer'
+          image: openEmrImage
+          command: ['/bin/sh']
+          args: [
+            '-c'
+            'if [ ! -f /mnt/sites/.seeded ]; then echo "Copying default sites structure..."; cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/ && touch /mnt/sites/.seeded && echo "Sites structure initialized"; else echo "Sites already seeded, skipping initialization"; fi'
+          ]
+          volumeMounts: [
+            {
+              volumeName: 'sitesdata'
+              mountPath: '/mnt/sites'
+            }
+          ]
+        }
+      ]
       containers: [
         {
           name: 'openemr'
