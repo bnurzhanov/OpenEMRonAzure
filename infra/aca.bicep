@@ -101,7 +101,6 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
     }
     template: {
       // Init container seeds the Azure File share with the packaged OpenEMR "sites" skeleton
-      // so the main container does not start with an empty /sites (which breaks bootstrap expecting sqlconf.php later).
       // Strategy: mount the persistent volume at an alternate path so the original image path is still visible.
       // A sentinel file (.seeded) prevents redundant full copies on restarts / additional replicas.
       initContainers: [
@@ -113,60 +112,17 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
             '-c'
             '''
             if [ ! -f /mnt/sites/.seeded ]; then
-              echo "Copying default sites structure..."
-              cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/
+              echo "Initializing sites structure..."
               
-              echo "Creating sqlconf.php with environment variables..."
-              cat > /mnt/sites/default/sqlconf.php << 'EOF'
-<?php
-//  OpenEMR
-//  MySQL Config
-
-global $disable_utf8_flag;
-$disable_utf8_flag = false;
-
-$host   = getenv('MYSQL_HOST') ?: 'localhost';
-$port   = '3306';
-$login  = getenv('MYSQL_USER') ?: 'openemr';
-$pass   = getenv('MYSQL_PASS') ?: 'openemr';
-$dbase  = getenv('MYSQL_DATABASE') ?: 'openemr';
-$db_encoding = 'utf8mb4';
-
-$sqlconf = array();
-global $sqlconf;
-$sqlconf["host"]= $host;
-$sqlconf["port"] = $port;
-$sqlconf["login"] = $login;
-$sqlconf["pass"] = $pass;
-$sqlconf["dbase"] = $dbase;
-$sqlconf["db_encoding"] = $db_encoding;
-EOF
+              # Create necessary directories
+              mkdir -p /mnt/sites/default
               
-              chmod 644 /mnt/sites/default/sqlconf.php
               touch /mnt/sites/.seeded
-              echo "Sites structure initialized with custom sqlconf.php"
+              echo "Sites structure initialized"
             else
               echo "Sites already seeded, skipping initialization"
             fi
             '''
-          ]
-          env: [
-            {
-              name: 'MYSQL_HOST'
-              value: mysqlHost
-            }
-            {
-              name: 'MYSQL_DATABASE'
-              value: 'openemr'
-            }
-            {
-              name: 'MYSQL_USER'
-              secretRef: 'mysql-admin-user'
-            }
-            {
-              name: 'MYSQL_PASS'
-              secretRef: 'mysql-admin-password'
-            }
           ]
           volumeMounts: [
             {
@@ -190,25 +146,22 @@ EOF
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
               value: appInsightsConnectionString
             }
-            // OpenEMR expected env vars (align with local docker-compose.yml)
+            // OpenEMR required env vars (from official documentation)
             {
               name: 'MYSQL_HOST'
               value: mysqlHost
             }
             {
-              name: 'MYSQL_DATABASE'
-              value: 'openemr'
+              name: 'MYSQL_ROOT_PASS'
+              secretRef: 'mysql-admin-password'
             }
-            // For Azure MySQL Flexible Server, use the admin user as both root and app user
-            // OpenEMR will connect as root during setup, then create/use the app user
+            // For Azure MySQL Flexible Server, set the admin user as root user
+            // since Azure doesn't provide a traditional root account
             {
               name: 'MYSQL_ROOT_USER'
               secretRef: 'mysql-admin-user'
             }
-            {
-              name: 'MYSQL_ROOT_PASS'
-              secretRef: 'mysql-admin-password'
-            }
+            // Optional OpenEMR env vars (will use defaults if not provided)
             {
               name: 'MYSQL_USER'
               secretRef: 'mysql-admin-user'
@@ -216,6 +169,11 @@ EOF
             {
               name: 'MYSQL_PASS'
               secretRef: 'mysql-admin-password'
+            }
+            // Explicitly specify the database name since it's pre-created
+            {
+              name: 'MYSQL_DATABASE'
+              value: 'openemr'
             }
             {
               name: 'OE_USER'
@@ -228,6 +186,15 @@ EOF
             {
               name: 'TZ'
               value: timezone
+            }
+            // MySQL SSL configuration for Azure MySQL Flexible Server
+            {
+              name: 'MYSQL_SSL_CA'
+              value: '/var/www/localhost/htdocs/openemr/sites/default/documents/certificates/mysql-ca'
+            }
+            {
+              name: 'MYSQL_SSL_MODE'
+              value: 'REQUIRED'
             }
           ]
           // Persistent volume mount backing /sites (Azure File share) to retain instance configuration & uploaded data.
