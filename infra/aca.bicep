@@ -116,7 +116,7 @@ resource aca 'Microsoft.App/containerApps@2024-03-01' = {
               
               # Create necessary directories
               mkdir -p /mnt/sites/default
-              
+              cp -r /var/www/localhost/htdocs/openemr/sites/* /mnt/sites/ || true
               touch /mnt/sites/.seeded
               echo "Sites structure initialized"
             else
