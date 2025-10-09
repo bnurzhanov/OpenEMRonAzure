@@ -132,3 +132,6 @@ synthetic-data/
 
 ### Disclaimer
 Synthea produces synthetic data only. This PoC is not production-hardened. Do not mix with real PHI until full security controls and schema mappings are implemented.
+
+### Update to trigger GH Actions
+09-Oct-2025
